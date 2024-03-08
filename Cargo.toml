@@ -1,5 +1,6 @@
 [workspace]
 members = ["endecode", "endecode-derive"]
+resolver = "2"
 package.authors = ["BlockOG"]
 package.repository = "https://github.com/BlockOG/endecode"
 package.license = "MIT"
