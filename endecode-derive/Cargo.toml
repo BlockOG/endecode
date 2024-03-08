@@ -1,7 +1,12 @@
 [package]
 name = "endecode-derive"
+description = "Derive macros for the endecode crate."
+authors = ["BlockOG"]
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/BlockOG/endecode"
+license = "MIT"
+license-file = "LICENSE"
 
 [lib]
 proc-macro = true
