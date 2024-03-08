@@ -1,0 +1,9 @@
+[workspace]
+members = ["endecode", "endecode-derive"]
+package.authors = ["BlockOG"]
+package.repository = "https://github.com/BlockOG/endecode"
+package.license = "MIT"
+package.license-file = "LICENSE"
+
+[patch.crates-io]
+endecode = { path = "endecode" }
