@@ -1,5 +1,5 @@
 use paste::paste;
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData, rc::Rc};
 
 pub trait Encode {
     fn encode_internal(&self, vec: &mut Vec<u8>);
@@ -64,6 +64,10 @@ impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
 impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
 impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 
+impl<T> Encode for PhantomData<T> {
+    fn encode_internal(&self, _vec: &mut Vec<u8>) {}
+}
+
 impl Encode for bool {
     fn encode_internal(&self, vec: &mut Vec<u8>) {
         vec.push(*self as u8);
@@ -84,19 +88,28 @@ where
 
 impl Encode for String {
     fn encode_internal(&self, vec: &mut Vec<u8>) {
-        self.len().encode_internal(vec);
-        vec.extend(self.bytes());
+        self.as_str().encode_internal(vec);
     }
 }
 
 impl Encode for &str {
     fn encode_internal(&self, vec: &mut Vec<u8>) {
-        self.len().encode_internal(vec);
-        vec.extend(self.bytes());
+        self.as_bytes().encode_internal(vec);
     }
 }
 
-impl<T> Encode for Vec<T>
+impl<T, const N: usize> Encode for [T; N]
+where
+    T: Encode,
+{
+    fn encode_internal(&self, vec: &mut Vec<u8>) {
+        for i in self {
+            i.encode_internal(vec);
+        }
+    }
+}
+
+impl<T> Encode for [T]
 where
     T: Encode,
 {
@@ -105,6 +118,15 @@ where
         for i in self.iter() {
             i.encode_internal(vec);
         }
+    }
+}
+
+impl<T> Encode for Vec<T>
+where
+    T: Encode,
+{
+    fn encode_internal(&self, vec: &mut Vec<u8>) {
+        self.as_slice().encode_internal(vec);
     }
 }
 
@@ -119,5 +141,37 @@ where
             k.encode_internal(vec);
             v.encode_internal(vec);
         }
+    }
+}
+
+impl<T> Encode for Rc<T>
+where
+    T: Encode,
+{
+    fn encode_internal(&self, vec: &mut Vec<u8>) {
+        self.as_ref().encode_internal(vec);
+    }
+}
+
+impl<T, E> Encode for Result<T, E>
+where
+    T: Encode,
+    E: Encode,
+{
+    fn encode_internal(&self, vec: &mut Vec<u8>) {
+        self.is_ok().encode_internal(vec);
+        match self {
+            Ok(ok) => ok.encode_internal(vec),
+            Err(err) => err.encode_internal(vec),
+        }
+    }
+}
+
+impl<T> Encode for Box<T>
+where
+    T: Encode,
+{
+    fn encode_internal(&self, vec: &mut Vec<u8>) {
+        self.as_ref().encode_internal(vec);
     }
 }

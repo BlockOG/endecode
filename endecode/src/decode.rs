@@ -1,5 +1,5 @@
 use paste::paste;
-use std::{collections::HashMap, hash::Hash, mem::size_of};
+use std::{collections::HashMap, hash::Hash, marker::PhantomData, mem::size_of, rc::Rc};
 
 pub trait Decode {
     fn decode(iter: &mut impl Iterator<Item = u8>) -> Self;
@@ -65,9 +65,15 @@ impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13);
 impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14);
 impl_tuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15);
 
+impl<T> Decode for PhantomData<T> {
+    fn decode(_iter: &mut impl Iterator<Item = u8>) -> Self {
+        Self
+    }
+}
+
 impl Decode for bool {
     fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
-        iter.next().unwrap() == 1
+        iter.next().unwrap() != 0
     }
 }
 
@@ -82,7 +88,25 @@ where
 
 impl Decode for String {
     fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
-        Self::from_utf8((0..usize::decode(iter)).map(|_| u8::decode(iter)).collect()).unwrap()
+        Self::from_utf8(Vec::<u8>::decode(iter)).unwrap()
+    }
+}
+
+impl<T, const N: usize> Decode for [T; N]
+where
+    T: Decode,
+{
+    fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
+        [(); N].map(|_| T::decode(iter))
+    }
+}
+
+impl<T> Decode for Box<[T]>
+where
+    T: Decode,
+{
+    fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
+        (0..usize::decode(iter)).map(|_| T::decode(iter)).collect()
     }
 }
 
@@ -91,7 +115,7 @@ where
     T: Decode,
 {
     fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
-        (0..usize::decode(iter)).map(|_| T::decode(iter)).collect()
+        Box::<[T]>::decode(iter).into_vec()
     }
 }
 
@@ -104,5 +128,33 @@ where
         (0..usize::decode(iter))
             .map(|_| <(K, V)>::decode(iter))
             .collect()
+    }
+}
+
+impl<T> Decode for Rc<T>
+where
+    T: Decode,
+{
+    fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
+        Self::new(T::decode(iter))
+    }
+}
+
+impl<T, E> Decode for Result<T, E>
+where
+    T: Decode,
+    E: Decode,
+{
+    fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
+        Option::<T>::decode(iter).ok_or_else(|| E::decode(iter))
+    }
+}
+
+impl<T> Decode for Box<T>
+where
+    T: Decode,
+{
+    fn decode(iter: &mut impl Iterator<Item = u8>) -> Self {
+        Self::new(T::decode(iter))
     }
 }

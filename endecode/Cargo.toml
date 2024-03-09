@@ -2,7 +2,7 @@
 name = "endecode"
 description = "A simple encoding crate for types."
 authors = ["BlockOG"]
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 repository = "https://github.com/BlockOG/endecode"
 license = "MIT"
@@ -12,7 +12,7 @@ derive = ["endecode-derive"]
 
 [dependencies]
 paste = "1.0.14"
-endecode-derive = { version = "0.1.0", path = "../endecode-derive", optional = true }
+endecode-derive = { version = "0.2.0", path = "../endecode-derive", optional = true }
 
 [dev-dependencies]
 rand = "0.8.5"
